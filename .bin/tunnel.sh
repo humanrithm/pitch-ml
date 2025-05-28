@@ -1,0 +1,1 @@
+ssh -i ~/Desktop/aws_private_key.pem ec2-user@174.129.97.144 -L 5432:motus.cjsqew0ksz41.us-east-1.rds.amazonaws.com:5432

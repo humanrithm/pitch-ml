@@ -1,4 +1,4 @@
-`pitch-ml`$\textbf{: Optimizing Pitcher Health \& Performance}$
+`pitch-ml`$\textbf{: Optimizing Pitcher Health and Performance}$
 
 Ball tracking, biomechanics, and machine learning algorithms for optimizing pitcher health and performance. 
 

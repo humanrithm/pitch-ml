@@ -1,4 +1,4 @@
-$\textbf{pitch-biomech-ml}$
+$\textbf{pitch-ml}$
 
 Ball tracking, biomechanics, and machine learning algorithms for optimizing pitcher health and performance. 
 

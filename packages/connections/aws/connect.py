@@ -16,7 +16,7 @@ class AWS():
         self.connected = 0
 
         # get __path__ to this file and use it to load .env
-        secrets_path = os.path.join(os.path.dirname(__file__), 'secrets.env')
+        secrets_path = os.path.join(os.path.dirname(__file__), 'secrets_aws.env')
         self.creds = load_dotenv(secrets_path)
 
     # create connection do database

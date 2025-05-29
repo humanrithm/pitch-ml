@@ -4,7 +4,11 @@ Ball tracking, biomechanics, and machine learning algorithms for optimizing pitc
 
 $\textbf{1. Repository Overview}$
 
-Coming soon.
+- `.bin`: AWS connection configuration.
+- `dev`: Any development tasks (e.g., biomechanics, data science), sorted by category and project.
+- `prod`: Research- or production-ready code, usually adapted from `dev`. 
+- `packages`: Modules & functions that can be accessed within the repo. Note that these currently require running `pip install -e .` to access. 
+- `qa`: Debugging or revision-specific tasks (e.g., biomechanics, data science), sorted by categoory and project. 
 
 $\textbf{A.1 Environment Setup}$
 
@@ -25,4 +29,5 @@ More details can be found in the `.bin` folder.
 
 $\textbf{A.3 Publications}$
 
-Any publications associated with this repository will be linked here.
+- __Moore, R.C., Gurchiek, R.D. & Avedesian, J.M.__ `A context-enhanced deep learning approach to predict baseball pitch location from ball tracking release metrics.` _Sports Engineering_ 28, 16 (2025). https://doi.org/10.1007/s12283-025-00497-5
+    - Relevant repository sections: __Coming Soon__.

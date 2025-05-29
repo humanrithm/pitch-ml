@@ -2,11 +2,18 @@ import re
 import pandas as pd
 from typing import Union
 
-__version__ = '0.1.7'
+__version__ = '0.1.8'
 
 # create a dictionary with marker numbers as keys and anatomical labels as values
 def create_marker_dict(marker_labels: pd.DataFrame) -> dict:
     return pd.Series(marker_labels['marker_name'].values, index=marker_labels['marker_number']).to_dict()
+
+def create_marker_mapping(marker_names: list):
+    """Create a mapping of marker indices to marker names."""
+    cleaned_marker_names = [name for name in marker_names if name.strip()]                      # remove empty strings
+    marker_mapping = {index + 1: name for index, name in enumerate(cleaned_marker_names)}       # create mapping
+    
+    return marker_mapping
 
 # map marker labels (e.g., X1) to anatomical names (e.g., front_head_X)
 def map_marker_labels(

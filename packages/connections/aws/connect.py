@@ -64,13 +64,43 @@ class AWS():
     """ S3 CONNECTIONS """
     def list_s3_objects(
             self, 
-            prefix: str = ''
+            prefix: str = '',
+            file_type: str = None
     ) -> list:
-        """List files in the S3 bucket under an optional prefix."""
+        """List files in the S3 bucket. Have the option to add a prefix and file type (e.g., .csv)."""
         
+        # load full bucket
         response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
         
-        return [obj['Key'] for obj in response.get('Contents', [])]
+        if file_type is not None:
+            return [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith(file_type)]
+        else:
+            return [obj['Key'] for obj in response.get('Contents', [])]
+        
+    def load_s3_object(
+            self, 
+            key: str
+    ):
+        """Load a specific object from the S3 bucket. The return type depends on the file type, which is extracted from the passed `key`."""
+        
+        # load object from S3 (applies to all types)
+        response = self.s3.get_object(Bucket=self.bucket_name, Key=key)
+
+        ## 
+        return response
+        ##
+        
+        # determine file type from key
+        match key.split('.')[-1].lower():
+            case 'csv':
+                return pd.read_csv(io.BytesIO(obj['Body'].read()))
+            case 'trc':
+                pass
+            case 'json':
+                pass
+            case 'osim':
+                pass
+        
 
     """ RDS FUNCTIONS """
     # run queries in database

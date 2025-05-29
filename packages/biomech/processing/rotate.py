@@ -3,8 +3,11 @@ import pandas as pd
 
 def rotate_data(
         data: pd.DataFrame,
-        rotation_matrix: np.ndarray
+        rotation_matrix: np.ndarray = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
 ) -> pd.DataFrame:
+    
+    """Rotate marker data using a specified rotation matrix. Default is a 90-degree rotation around the X-axis."""
+
     # create copy of data to avoid overwriting
     copy = data.copy()  
 

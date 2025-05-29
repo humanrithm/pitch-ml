@@ -12,6 +12,10 @@ setup(
         'dropbox>=12.0.2',
         'scipy>=1.14.0',
         'matplotlib>=3.4.0',
+        'psycopg2 >= 2.9.9',
+        'python-dotenv>=1.1.0',
+        'sshtunnel>=0.4.0',
+        'boto3>=1.38.25'
     ],
     author='Connor Moore',
     author_email='rcm8@clemson.edu',

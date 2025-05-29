@@ -1,4 +1,5 @@
 import os
+import boto3
 import psutil
 import psycopg2
 import numpy as np
@@ -10,7 +11,23 @@ from psycopg2.errors import UniqueViolation
 
 class AWS():
 
-    __version__ = '0.2.4'
+    """
+    **AWS**
+
+    AWS connection class to connect to an RDS database and S3 bucket via SSH tunnel.
+    This class provides methods to connect to the database, run queries, upload data,
+    and close the connection. It also handles SSH tunneling to securely connect to the
+    RDS instance.
+
+    Once connected, it is possible to query from the RDS using the `run_query` method,
+    and upload data to a table using the `upload_data` method. The connection can be
+    closed using the `close` method.
+
+    S3 access is handled with an IAM role within the elastic EC2 instance. Full access
+    and retrieval is not implemented yet, but is pending in `v0.2.5`.
+    """
+
+    __version__ = '0.2.5'
 
     def __init__(self):
         self.connected = 0
@@ -21,10 +38,13 @@ class AWS():
 
     # create connection do database
         # port: local port to connect to RDS (defaults to 5433)
-    def connect(self,
-                port: int = 5433):
+    def connect(
+            self,
+            port: int = 5433
+    ) -> None:
         self.tunnel = self.__setup_ssh(port)        # set up ssh tunnel
 
+        """ RDS Connection"""
         # create connection to RDS
         self.connection = psycopg2.connect(
             host='localhost',
@@ -37,9 +57,27 @@ class AWS():
 
         print('[AWS]: Connected to RDS endpoint.')
 
+        """ S3 Bucket """
+        self.s3 = boto3.client("s3")
+        self.bucket_name = 'pitch-ml'
+
+    """ S3 CONNECTIONS """
+    def list_s3_objects(
+            self, 
+            prefix: str = ''
+    ) -> list:
+        """List files in the S3 bucket under an optional prefix."""
+        
+        response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
+        
+        return [obj['Key'] for obj in response.get('Contents', [])]
+
+    """ RDS FUNCTIONS """
     # run queries in database
-    def run_query(self,
-                  query: str):
+    def run_query(
+            self,
+            query: str
+    ) -> pd.DataFrame:
         if self.connected == 0:
             self.connect()
         
@@ -83,6 +121,7 @@ class AWS():
         finally:
             cursor.close()
     
+    """ CONNECTION MANAGEMENT """
     # close connection & tunnel
     def close(self):
         # database connection
@@ -99,7 +138,6 @@ class AWS():
         
         else:
             print("[AWS]: No active connection to close.")
-
 
     # set up ssh tunnel
     def __setup_ssh(self,

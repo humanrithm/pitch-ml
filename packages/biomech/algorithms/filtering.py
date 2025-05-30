@@ -11,7 +11,7 @@ def butter_lowpass_filter(
         columns: Union[list, str], 
         cutoff: float = 18, 
         fs: float = 480.0, 
-        order: int = 4
+        order: int = 2
 ) -> pd.DataFrame:
     """
     Apply a zero-phase Butterworth low-pass filter to biomechanics marker data.

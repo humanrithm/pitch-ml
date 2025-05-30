@@ -1,9 +1,9 @@
 import io, os
 import pandas as pd
 from typing import Union, TextIO
-from biomech.processing import create_marker_mapping, list_markers
+from .markers import create_marker_mapping, list_markers
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 # lists of markers to preserve in TRCs
 __markers_left__ = [

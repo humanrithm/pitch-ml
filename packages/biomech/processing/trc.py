@@ -89,10 +89,11 @@ def create_trc_header(
 """ TRC BODY PROCESSING """
 def parse_trc_body(
         source: Union[str, bytes, TextIO],
-        sample_rate: int = 480
+        sample_rate: int = 480,
+        throwing_hand: str = None
 ) -> pd.DataFrame:
     
-    """Parse the body of a TRC file or string into a DataFrame. Returns a DataFrame with all marker positions."""
+    """Parse the body of a TRC file string or bytes stream into a DataFrame. Returns a DataFrame with all marker positions."""
 
     # create a TextIO stream from the source
     if isinstance(source, bytes):
@@ -114,5 +115,17 @@ def parse_trc_body(
 
     # insert frame number
     trc_data_clean.insert(0, 'Frame#', range(1, len(trc_data_clean) + 1))
+
+    # filter markers by throwing hand if specified
+    if throwing_hand is not None:
+        if throwing_hand == 'left':
+            markers_to_keep = __markers_left__
+        elif throwing_hand == 'right':
+            markers_to_keep = __markers_right__
+        else:
+            raise ValueError("Invalid throwing hand specified. Use 'left' or 'right' if specifying, otherwise None.")
+        
+        # filter columns to keep only the specified markers
+        trc_data_clean = trc_data_clean[['Frame#', 'Time'] + markers_to_keep]
 
     return trc_data_clean

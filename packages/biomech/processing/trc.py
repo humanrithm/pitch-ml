@@ -3,7 +3,7 @@ import pandas as pd
 from typing import Union, TextIO
 from biomech.processing import create_marker_mapping, list_markers
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 # lists of markers to preserve in TRCs
 __markers_left__ = [
@@ -23,6 +23,17 @@ __markers_right__ = [
     'X16', 'Y16', 'Z16', # 16,right_lateral_wrist
     'X17', 'Y17', 'Z17', # 17,right_medial_wrist
     'X18', 'Y18', 'Z18'  # 18,right_hand
+]
+
+# renamed markers 
+__renamed_markers__ = [
+    'X1', 'Y1', 'Z1',
+    'X2', 'Y2', 'Z2', 
+    'X3', 'Y3', 'Z3',
+    'X4', 'Y4', 'Z4',
+    'X5', 'Y5', 'Z5',
+    'X6', 'Y6', 'Z6',
+    'X7', 'Y7', 'Z7'   
 ]
 
 
@@ -128,4 +139,7 @@ def parse_trc_body(
         # filter columns to keep only the specified markers
         trc_data_clean = trc_data_clean[['Frame#', 'Time'] + markers_to_keep]
 
-    return trc_data_clean
+        # rename markers to match the model
+        trc_data_clean.columns = ['Frame#', 'Time'] + __renamed_markers__
+
+    return trc_data_clean.dropna(axis=1, how='all')         # drop any all-NaN columns from trc loading

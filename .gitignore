@@ -176,3 +176,9 @@ cython_debug/
 # secrets 
 install_packages.ipynb
 *.env
+
+# data files
+*.csv
+*.tsv
+*.trc
+

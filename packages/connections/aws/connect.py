@@ -185,7 +185,7 @@ class AWS():
 
         # write header 7 body lines
         buffer.write("\n".join(header) + "\n")
-        body.to_csv(buffer, sep="\t", index=True, header=False)
+        body.to_csv(buffer, sep="\t", index=False, header=False)
 
         # upload object to S3
         self.s3.put_object(

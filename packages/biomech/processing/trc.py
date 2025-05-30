@@ -1,9 +1,9 @@
 import io, os
 import pandas as pd
 from typing import Union, TextIO
-from .markers import create_marker_mapping, list_markers
+from biomech.processing import create_marker_mapping, list_markers
 
-__version__ = '0.1.1'
+__version__ = '0.1.0'
 
 # lists of markers to preserve in TRCs
 __markers_left__ = [
@@ -53,7 +53,7 @@ def write_to_trc(
     # write to file
     with open(file_name, 'w') as f:
         f.write("\n".join(header) + "\n")
-        body.to_csv(f, sep="\t", index=True, header=False)
+        body.to_csv(f, sep="\t", index=False, header=False)
 
 """ TRC HEADER PROCESSING """
 # create trc header from dataframe info
@@ -108,17 +108,11 @@ def parse_trc_body(
     # handle first two columns (Frame# and Time)
     if isinstance(trc_data.index, pd.MultiIndex):
         trc_data_clean = trc_data.reset_index(level=1).rename(columns={'level_1': 'Time'})
-    else:
+    elif 'Time' not in trc_data.columns:
         trc_data_clean = trc_data.reset_index(drop=True)                              # no multi-index; just reset to default integer index
         trc_data_clean.insert(0, 'Time', trc_data_clean.index * (1 / sample_rate))    # insert time column based on index
 
     # insert frame number
     trc_data_clean.insert(0, 'Frame#', range(1, len(trc_data_clean) + 1))
-
-    # check for properly formatted TRC file
-    if 'X1' in trc_data_clean.columns and trc_data_clean['X1'].is_monotonic_increasing:
-        time = trc_data_clean['Y1']                                         # save time values
-        trc_data_clean = trc_data_clean.shift(-2, axis=1, fill_value=None)  # shift all columns two to the left
-        trc_data_clean.insert(0, 'Time', time)                              # insert time column at the beginning
 
     return trc_data_clean

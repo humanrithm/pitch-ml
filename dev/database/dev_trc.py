@@ -55,7 +55,7 @@ def write_to_trc(
     # write to file
     with open(file_name, 'w') as f:
         f.write("\n".join(header) + "\n")
-        body.to_csv(f, sep="\t", index=True, header=False)
+        body.to_csv(f, sep="\t", index=False, header=False)
 
 """ TRC HEADER PROCESSING """
 # create trc header from dataframe info

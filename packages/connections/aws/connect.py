@@ -1,4 +1,5 @@
 import os
+import io
 import boto3
 import psutil
 import psycopg2
@@ -6,6 +7,7 @@ import numpy as np
 import pandas as pd
 import psycopg2.extras
 from dotenv import load_dotenv
+from biomech.processing.trc import *                    # import TRC processing functions
 from sshtunnel import SSHTunnelForwarder
 from psycopg2.errors import UniqueViolation
 
@@ -62,46 +64,138 @@ class AWS():
         self.bucket_name = 'pitch-ml'
 
     """ S3 CONNECTIONS """
+    # create folder within the S3 bucket
+    def create_s3_folder(
+            self, 
+            folder_prefix: str
+    ) -> None:
+        """ Create folder (`folder_prefix`) in S3 if it doesn't already exist. """
+        
+        if not folder_prefix.endswith('/'):
+            folder_prefix += '/'
+
+        # check if any object exists with the given prefix
+        response = self.s3.list_objects_v2(
+            Bucket=self.bucket_name,
+            Prefix=folder_prefix,
+            MaxKeys=1
+        )
+        if 'Contents' in response:
+            print(f"[AWS]: Folder s3://{self.bucket_name}/{folder_prefix} already exists.")
+        else:
+            # upload an empty object (simulates folder creation)
+            self.s3.put_object(Bucket=self.bucket_name, Key=folder_prefix)
+            print(f"[AWS]: Created folder s3://{self.bucket_name}/{folder_prefix}")
+
     def list_s3_objects(
             self, 
             prefix: str = '',
-            file_type: str = None
+            file_type: str = None,
+            paginate: bool = True
     ) -> list:
-        """List files in the S3 bucket. Have the option to add a prefix and file type (e.g., .csv)."""
-        
-        # load full bucket
-        response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
-        
-        if file_type is not None:
-            return [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith(file_type)]
+        """List files in the S3 bucket. Have the option to add a prefix and file type (e.g., .csv).
+
+        **Args:**
+            **prefix** (str): Prefix to filter the objects in the S3 bucket. Default is empty string, which lists all objects.
+            **file_type** (str): File type to filter the objects (e.g., '.csv'). Default is None, which lists all objects.
+            **paginate** (bool, default `True`): If True, will paginate through the results. Default is False, which returns up to 1,000 objects.
+        """
+        if paginate:
+            paginator = self.s3.get_paginator('list_objects_v2')
+            page_iterator = paginator.paginate(Bucket=self.bucket_name, Prefix=prefix)
+
+            all_keys = []
+            for page in page_iterator:
+                contents = page.get('Contents', [])
+                all_keys.extend(obj['Key'] for obj in contents)
+
+            return all_keys
+
         else:
-            return [obj['Key'] for obj in response.get('Contents', [])]
+            # load full bucket
+            response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
+            
+            if file_type is not None:
+                return [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith(file_type)]
+            else:
+                return [obj['Key'] for obj in response.get('Contents', [])]
         
     def load_s3_object(
             self, 
-            key: str
-    ):
-        """Load a specific object from the S3 bucket. The return type depends on the file type, which is extracted from the passed `key`."""
+            key: str,
+            return_info: bool = True
+    ) -> Union[tuple[bytes, dict], bytes]:
+        """Load a specific object from the S3 bucket. Returns a Bytes object, which can be handled in a separate function, and relevant info extracted from file name."""
         
         # load object from S3 (applies to all types)
         response = self.s3.get_object(Bucket=self.bucket_name, Key=key)
 
-        ## 
-        return response
-        ##
-        
-        # determine file type from key
-        match key.split('.')[-1].lower():
-            case 'csv':
-                return pd.read_csv(io.BytesIO(obj['Body'].read()))
-            case 'trc':
-                pass
-            case 'json':
-                pass
-            case 'osim':
-                pass
-        
+        if return_info:
+            # get info from key (+ check for static trial)
+            if '@static' in key:
+                key_info = {
+                    'subject_id': key.split('/')[1],
+                    'study_id': key.split('/')[1] + '_static'                                       # static trial
+                }
+            else:
+                key_info = {
+                    'subject_id': key.split('/')[1],
+                    'study_id': key.split('/')[1] + '_' + key.split('_')[-1].split('.')[0]          # this gets the pitch number (e.g., _01)
+                }
 
+            return response['Body'].read(), key_info
+        else:
+            return response['Body'].read()    
+
+    def upload_to_s3(
+            self, 
+            obj: Union[str, bytes, pd.DataFrame], 
+            s3_key: str
+    ) -> None:
+        """Upload a Python object (string, bytes, or DataFrame) to S3. Uses `put_object` from S3 client to handle different data types.
+        
+        **Args:**
+            **obj** (Union[str, bytes, pd.DataFrame]): The object to upload. Can be a string, bytes, or a pandas DataFrame.
+            **s3_key** (str): The S3 key (path) where the object will be uploaded.
+        **Raises:**
+            **TypeError**: If the object type is not supported (not str, bytes, or pd.DataFrame).
+        """
+        
+        # check data type
+        if isinstance(obj, pd.DataFrame):
+            buffer = io.StringIO()
+            obj.to_csv(buffer, index=False)
+            body = buffer.getvalue()
+        elif isinstance(obj, str):
+            body = obj
+        elif isinstance(obj, bytes):
+            body = obj
+        else:
+            raise TypeError("Unsupported type for upload. Supported types: str, bytes, pd.DataFrame.")
+        
+        # put object to S3
+        self.s3.put_object(Bucket=self.bucket_name, Key=s3_key, Body=body)
+        
+        print(f"[AWS]: Uploaded object to s3://{self.bucket_name}/{s3_key}")
+    
+    def upload_trc_to_s3(self, header: list[str], body: pd.DataFrame, s3_key: str):
+        """ Write TRC file (header + `DataFrame` body) directly to S3. """
+        
+        buffer = io.StringIO()
+
+        # write header 7 body lines
+        buffer.write("\n".join(header) + "\n")
+        body.to_csv(buffer, sep="\t", index=True, header=False)
+
+        # upload object to S3
+        self.s3.put_object(
+            Bucket=self.bucket_name,
+            Key=s3_key,
+            Body=buffer.getvalue()
+        )
+    
+        print(f"[AWS]: TRC file written to s3://{self.bucket_name}/{s3_key}")
+    
     """ RDS FUNCTIONS """
     # run queries in database
     def run_query(

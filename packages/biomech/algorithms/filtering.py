@@ -2,60 +2,47 @@ import numpy as np
 import pandas as pd
 from typing import Union
 from scipy.signal import butter, filtfilt
-from .diff_three_point import diff_three_point
 
 
-__version__ = '0.1.7'
-
-def butter_lowpass(
-        cutoff: float, 
-        fs: float, 
-        order: int
-    ):
-    nyquist = 0.5 * fs
-    normal_cutoff = cutoff / nyquist
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
-    
-    return b, a    
+__version__ = '0.2.0'
 
 def butter_lowpass_filter(
-        data: Union[pd.DataFrame, np.ndarray], 
-        cutoff: float = 13.4, 
-        fs: int = 480, 
-        order: int = 4,
-    ):
-    b, a = butter_lowpass(cutoff, fs, order=order)
+        data: pd.DataFrame, 
+        columns: Union[list, str], 
+        cutoff: float = 18, 
+        fs: float = 480.0, 
+        order: int = 4
+) -> pd.DataFrame:
+    """
+    Apply a zero-phase Butterworth low-pass filter to biomechanics marker data.
 
-    # option 1: array
-    if type(data) == np.ndarray:
-        numeric_data = pd.DataFrame(data)
-        y = numeric_data.apply(lambda col: filtfilt(b, a, col), axis=0)
+    **Args**:
+    `data` (pd.DataFrame): Input DataFrame with marker position columns.
+    `columns` (str or list of str): Column(s) to filter.
+    `cutoff` (float): Cutoff frequency in Hz. Default is 13.4 Hz.
+    `fs` (float): Sampling frequency in Hz. Default is 480 Hz.
+    `order` (int): Order of the Butterworth filter. Default is 4.
 
-    # option 2: dataframe
-    else:
-        # check if time 
-        if 'time' in data.columns:
-            numeric_data = data.select_dtypes(include=float).drop('time', axis=1)
-        else:
-            numeric_data = data.select_dtypes(include=float)
-        
-        # apply filter column-wise to numeric columns (v0.1.3); time dropped (v0.1.4)
-        y = numeric_data.apply(lambda col: filtfilt(b, a, col), axis=0)
+    Returns:
+    `pd.DataFrame`: Filtered DataFrame with the same index and filtered columns.
+    """
     
-    return y
+    # 
+    if isinstance(columns, str):
+        columns = [columns]
 
-# compute q_dot, q_ddot for trial
-def compute_q_dot_ddot(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    q = butter_lowpass_filter(data)
+    # filtering params
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    b, a = butter(N=order, Wn=normal_cutoff, btype='low', analog=False)
 
-    # compute joint angular velocities (q dot)
-    q_dot = diff_three_point(q)
-    q_ddot = diff_three_point(q_dot)
+    # setup filtered df
+    filtered_df = data.copy()
 
-    # add time, study_id columns
-    q_dot.insert(0, 'time', data['time'])
-    q_dot.insert(0, 'study_id', data['study_id'])
-    q_ddot.insert(0, 'time', data['time'])
-    q_ddot.insert(0, 'study_id', data['study_id'])
+    # iterate through columns
+    for col in columns:
+        x = data[col].values
+        x_filtered = filtfilt(b, a, x, method="pad")
+        filtered_df[f'{col}_filtered'] = x_filtered
 
-    return q_dot, q_ddot
+    return filtered_df

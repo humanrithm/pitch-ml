@@ -4,8 +4,9 @@ from typing import Union
 from scipy.signal import butter, filtfilt
 
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
+# production ready filtering function (returns same columns as input)
 def butter_lowpass_filter(
         data: pd.DataFrame, 
         columns: Union[list, str], 
@@ -43,6 +44,7 @@ def butter_lowpass_filter(
     for col in columns:
         x = data[col].values
         x_filtered = filtfilt(b, a, x, method="pad")
-        filtered_df[f'{col}_filtered'] = x_filtered
+        filtered_df[f'{col}'] = x_filtered
 
     return filtered_df
+

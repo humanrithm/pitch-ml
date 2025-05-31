@@ -16,6 +16,9 @@ class AWS():
     """
     **AWS**
 
+    **Latest Version: `0.2.6`**\n
+    **Author: `Connor Moore`**
+
     AWS connection class to connect to an RDS database and S3 bucket via SSH tunnel.
     This class provides methods to connect to the database, run queries, upload data,
     and close the connection. It also handles SSH tunneling to securely connect to the
@@ -25,11 +28,10 @@ class AWS():
     and upload data to a table using the `upload_data` method. The connection can be
     closed using the `close` method.
 
-    S3 access is handled with an IAM role within the elastic EC2 instance. Full access
-    and retrieval is not implemented yet, but is pending in `v0.2.5`.
+    S3 access is handled with an IAM role within the elastic EC2 instance.
     """
 
-    __version__ = '0.2.5'
+    __version__ = '0.2.6'
 
     def __init__(self):
         self.connected = 0
@@ -197,6 +199,14 @@ class AWS():
         print(f"[AWS]: TRC file written to s3://{self.bucket_name}/{s3_key}")
     
     """ RDS FUNCTIONS """
+    # load all subject info
+    def load_subject_info(self) -> pd.DataFrame:
+        """ Load subject info from S3 bucket. Returns a CSV file with subject IDs and other relevant information."""
+        subject_info_bytes = self.load_s3_object('subjects/summary/subject_info.csv', return_info=False)
+        subject_info = pd.read_csv(io.BytesIO(subject_info_bytes))
+
+        return subject_info
+    
     # run queries in database
     def run_query(
             self,

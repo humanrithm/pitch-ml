@@ -178,6 +178,8 @@ install_packages.ipynb
 *.env
 
 # data files
+data/
+test_files/
 *.csv
 *.tsv
 *.trc

@@ -162,6 +162,7 @@ class AWS():
         
         # decode and parse
         root = ET.fromstring(xml_bytes.decode('utf-8'))
+        
         return root
  
     def upload_to_s3(

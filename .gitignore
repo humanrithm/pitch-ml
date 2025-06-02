@@ -184,4 +184,9 @@ opensim/
 *.csv
 *.tsv
 *.trc
+*.osim
+*.xml
+*.mot
+*.sto
+*.txt
 

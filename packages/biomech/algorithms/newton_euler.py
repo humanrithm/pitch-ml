@@ -5,7 +5,7 @@ import opensim as osim
 from .diff_three_point import diff_three_point
 from .filtering import butter_lowpass_filter
 
-class InverseDynamics():
+class NewtonEuler():
     """
     Inverse Dynamics class for performing top-down or bottom-up inverse dynamics analysis using OpenSim models. Expands upon the OpenSim ID tool by allowing for the extraction of intersegmental moments/forces, such as elbow valgus torque.
     
@@ -47,7 +47,7 @@ class InverseDynamics():
     """
 
     __version__ = '0.3.0'
-    __kinematic_filter__ = 13.4         # optional freq. for certain acceleration data
+    __kinematic_filter__ = 18         # optional freq. for certain acceleration data
     
     # all joint rotations wrt. parent (updated in v0.2.8)
     __rotation_matrices__ = {

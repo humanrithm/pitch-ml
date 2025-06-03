@@ -180,7 +180,6 @@ install_packages.ipynb
 # data files
 data/
 test_files/
-opensim/
 *.csv
 *.tsv
 *.trc

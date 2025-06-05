@@ -46,7 +46,7 @@ class NewtonEuler():
         __setup_bodies_and_joints(top_down): Sets up bodies and joints for the model.
     """
 
-    __version__ = '0.3.0'
+    __version__ = '0.3.1'
     __kinematic_filter__ = 18         # optional freq. for certain acceleration data
     
     # all joint rotations wrt. parent (updated in v0.2.8)
@@ -152,7 +152,11 @@ class NewtonEuler():
         self.throwing_hand = throwing_hand
         
         # set opensim model params
-        self.modeled_angles = q.columns[2:]
+        self.modeled_angles = [
+            'arm_flex_r', 'arm_add_r', 'arm_rot_r', 'humerus_r_tx',
+            'humerus_r_ty', 'humerus_r_tz', 'elbow_flex_r', 'pro_sup_r',
+            'wrist_flex_r', 'wrist_dev_r'
+        ]
         self.model, motion = self.update_model_motion(
             model,
             model.getWorkingState(),        # pass current state
@@ -191,11 +195,15 @@ class NewtonEuler():
         v_df = pd.DataFrame(v.T, columns=['x', 'y', 'z'])                               # butter filter needs columns
         a_df = diff_three_point(v_df)
         
+        # filter noise from accelerations --> avoids inflated moments
         if filter_cutoff:
-            a_df.insert(0, 'time', self.q['time'])
-            a_df = butter_lowpass_filter(a_df, cutoff=filter_cutoff)                    # filter noise from accelerations --> avoids inflated moments
+            a_df = butter_lowpass_filter(
+                a_df, 
+                columns=['diff_x', 'diff_y', 'diff_z'], 
+                cutoff=filter_cutoff
+            )
         
-        return a_df.values.T                                                            # array shape: (3, num_samples)
+        return a_df.values.T                                                           # array shape: (3, num_samples)
     
     # convert orientation to Euler angles (XYZ sequence)
         # see 01a_updated_rotation_matrices.ipynb for derivation
@@ -400,7 +408,6 @@ class NewtonEuler():
                 # QA: F_net should not be 0
                 # new in v3.0.0 (4/23/25): looping through t preserves shape
             R = bmotion['orientation']
-            F_net = np.zeros((3, self.num_samples))
             for t in range(self.num_samples):
                 F_net[:, t] = mass * (R[:, :, t] @ self.g)
         
@@ -487,7 +494,7 @@ class NewtonEuler():
     def update_acceleration(
             self,
             motion: dict[str, dict[str, dict[str, np.ndarray]]],
-            filter_cutoff: float = None
+            filter_cutoff: float = __kinematic_filter__
     ) -> dict[str, dict[str, dict[str, np.ndarray]]]:
         # iterate over bodies
         for body in motion['body'].keys():
@@ -652,15 +659,15 @@ class NewtonEuler():
 
                 # linear velocity (orig. vec3)
                 linear_velocity = np.array([body.getLinearVelocityInGround(state).get(i) for i in range(3)])
-                motion['body'][body_names[j]]['ground']['velocity'][:, k] = linear_velocity
+                motion['body'][body_names[j]]['ground']['velocity'][:, k] = linear_velocity 
                 
                 # angular velocity (orig. vec3)
                 angular_velocity_in_ground = np.array([body.getAngularVelocityInGround(state).get(i) for i in range(3)])
-                motion['body'][body_names[j]]['ground']['angular_velocity'][:, k] = angular_velocity_in_ground
+                motion['body'][body_names[j]]['ground']['angular_velocity'][:, k] = angular_velocity_in_ground 
                 
                 # angular velocity in body := transpose of orientation mult. w/ angular velocity
                 angular_velocity_in_body = orientation.T @ angular_velocity_in_ground
-                motion['body'][body_names[j]]['angular_velocity_in_body'][:, k] = angular_velocity_in_body
+                motion['body'][body_names[j]]['angular_velocity_in_body'][:, k] = angular_velocity_in_body 
 
                 # CoM position
                 mass_center = np.array([body.get_mass_center().get(i) for i in range(3)])
@@ -670,7 +677,7 @@ class NewtonEuler():
                 # CoM velocity
                     # changed to angular_velocity_in_body (2/26)
                 com_velocity = linear_velocity + (orientation @ np.cross(angular_velocity_in_body, mass_center))
-                motion['body'][body_names[j]]['com']['velocity'][:, k] = com_velocity
+                motion['body'][body_names[j]]['com']['velocity'][:, k] = com_velocity 
 
             # update joints
             for j in range(len(joint_names)):

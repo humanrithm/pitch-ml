@@ -180,8 +180,13 @@ install_packages.ipynb
 # data files
 data/
 test_files/
-opensim/
+opensim_models/
 *.csv
 *.tsv
 *.trc
+*.osim
+*.xml
+*.mot
+*.sto
+*.txt
 

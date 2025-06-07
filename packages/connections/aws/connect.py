@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import psycopg2.extras
 from dotenv import load_dotenv
+import xml.etree.ElementTree as ET
 from biomech.processing.trc import *                    # import TRC processing functions
 from sshtunnel import SSHTunnelForwarder
 from psycopg2.errors import UniqueViolation
@@ -16,8 +17,10 @@ class AWS():
     """
     **AWS**
 
-    **Latest Version: `0.2.6`**\n
+    **Latest Version: `0.2.7`**\n
     **Author: `Connor Moore`**
+
+    `v0.2.7` includes the ability to load XML files.
 
     AWS connection class to connect to an RDS database and S3 bucket via SSH tunnel.
     This class provides methods to connect to the database, run queries, upload data,
@@ -31,7 +34,7 @@ class AWS():
     S3 access is handled with an IAM role within the elastic EC2 instance.
     """
 
-    __version__ = '0.2.6'
+    __version__ = '0.2.7'
 
     def __init__(self):
         self.connected = 0
@@ -149,6 +152,19 @@ class AWS():
         else:
             return response['Body'].read()    
 
+    def load_xml_from_s3(
+            self, 
+            s3_key: str
+    ) -> ET.Element:
+        """Load an XML file from S3 and return its root element."""
+        obj = self.s3.get_object(Bucket=self.bucket_name, Key=s3_key)
+        xml_bytes = obj['Body'].read()
+        
+        # decode and parse
+        root = ET.fromstring(xml_bytes.decode('utf-8'))
+        
+        return root
+ 
     def upload_to_s3(
             self, 
             obj: Union[str, bytes, pd.DataFrame], 

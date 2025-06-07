@@ -3,7 +3,18 @@ import pandas as pd
 from typing import Union, TextIO
 from biomech.processing import create_marker_mapping, list_markers
 
-__version__ = '0.1.1'
+__version__ = '0.1.3'
+
+""" **TRC FILE PROCESSING** 
+
+**Current Version**: `0.1.3`
+
+This module provides functions to read, write, and process TRC files used in biomechanics. 
+It includes functionality to create headers, parse bodies, and filter markers based on the 
+throwing hand of the subject.
+
+**New in `0.1.3`**: Added `check_trc_format` function to verify the format of TRC files.
+"""
 
 # lists of markers to preserve in TRCs
 __markers_left__ = [
@@ -44,9 +55,11 @@ def write_to_trc(
         file_name: str,
         body: pd.DataFrame, 
         throwing_hand: str,
-        frame_rate: int = 480
+        frame_rate: int = 480,
+        filter_markers: bool = True
 ) -> None:
-    """ Write a TRC file with the given header and body data. Uses `throwing_hand` to determine which markers to include. 
+    """ Write a TRC file with the given header and body data. If `filter_markers` is set to `True`, function then 
+    uses `throwing_hand` to determine which markers to include. 
     
     **Note**: Assumes markers are already rotated to match desired coordinate system. """
     
@@ -54,12 +67,14 @@ def write_to_trc(
     header = create_trc_header(file_name, body, throwing_hand, frame_rate)
 
     # filter body to include only markers in the model
-    if throwing_hand == 'left':
-        body = body[['Frame#', 'Time'] + __markers_left__]
-    elif throwing_hand == 'right':
-        body = body[['Frame#', 'Time'] + __markers_right__]
-    else:
-        raise ValueError("Invalid throwing hand specified. Use 'left' or 'right'.")
+        # added filter_markers in `0.1.2`
+    if filter_markers:
+        if throwing_hand == 'left':
+            body = body[['Frame#', 'Time'] + __markers_left__]
+        elif throwing_hand == 'right':
+            body = body[['Frame#', 'Time'] + __markers_right__]
+        else:
+            raise ValueError("Invalid throwing hand specified. Use 'left' or 'right'.")
     
     # write to file
     with open(file_name, 'w') as f:
@@ -101,7 +116,8 @@ def create_trc_header(
 def parse_trc_body(
         source: Union[str, bytes, TextIO],
         sample_rate: int = 480,
-        throwing_hand: str = None
+        throwing_hand: str = None,
+        filter_markers: bool = True
 ) -> pd.DataFrame:
     
     """Parse the body of a TRC file string or bytes stream into a DataFrame. Returns a DataFrame with all marker positions."""
@@ -128,7 +144,8 @@ def parse_trc_body(
     trc_data_clean.insert(0, 'Frame#', range(1, len(trc_data_clean) + 1))
 
     # filter markers by throwing hand if specified
-    if throwing_hand is not None:
+        # filter_markers added in `0.1.2`
+    if throwing_hand is not None and filter_markers:
         if throwing_hand == 'left':
             markers_to_keep = __markers_left__
         elif throwing_hand == 'right':
@@ -143,3 +160,21 @@ def parse_trc_body(
         trc_data_clean.columns = ['Frame#', 'Time'] + __renamed_markers__
 
     return trc_data_clean.dropna(axis=1, how='all')         # drop any all-NaN columns from trc loading
+
+# check for properly formatted TRC file
+    # returns dataframe, format_valid (0 if valid, 1 if not)
+def check_trc_format(df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    
+    """ Check for properly formatted TRC file. Returns a tuple of the dataframe and a format validity flag. """
+
+    copy = df.copy()                                                    # create a copy of the dataframe
+    
+    # OPTION 1: X1 is Frame#, Y1 is Time --> shift all columns two to the left
+    if copy['X1'].values[0] == 1:
+        copy_formatted = copy.shift(-2, axis=1, fill_value=None)        # shift all columns two to the left
+    
+        return copy_formatted.dropna(axis=1), 0                         # drop NA to remove redundant columns
+    
+    # clean --> return copy
+    else:
+        return copy, 1

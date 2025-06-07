@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pitch_ml",
-    version="0.0.3",
+    version="0.0.5",
     packages=find_packages(where="packages"),
     package_dir={"": "packages"},
     python_requires=">=3.8",

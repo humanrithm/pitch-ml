@@ -17,10 +17,10 @@ class AWS():
     """
     **AWS**
 
-    **Latest Version: `0.2.7`**\n
+    **Latest Version: `0.2.8`**\n
     **Author: `Connor Moore`**
 
-    `v0.2.7` includes the ability to load XML files.
+    `v0.2.8` modified object loading to return a dataframe if .csv is detected.
 
     AWS connection class to connect to an RDS database and S3 bucket via SSH tunnel.
     This class provides methods to connect to the database, run queries, upload data,
@@ -34,7 +34,7 @@ class AWS():
     S3 access is handled with an IAM role within the elastic EC2 instance.
     """
 
-    __version__ = '0.2.7'
+    __version__ = '0.2.8'
 
     def __init__(self):
         self.connected = 0
@@ -128,12 +128,23 @@ class AWS():
     def load_s3_object(
             self, 
             key: str,
-            return_info: bool = True
-    ) -> Union[tuple[bytes, dict], bytes]:
-        """Load a specific object from the S3 bucket. Returns a Bytes object, which can be handled in a separate function, and relevant info extracted from file name."""
+            return_info: bool = False,
+            as_dataframe: bool = True
+    ) -> Union[tuple[Union[bytes, pd.DataFrame], dict], Union[bytes, pd.DataFrame]]:
+        """Load a specific object from the S3 bucket. 
+        
+        Returns a Bytes object or loaded dataframe (if `as_dataframe` is True and the file is a CSV). Additionally includes 
+        option to return file metadata."""
         
         # load object from S3 (applies to all types)
         response = self.s3.get_object(Bucket=self.bucket_name, Key=key)
+        bytes = response['Body'].read()
+
+        # check if the object is a CSV file and return as DataFrame
+        if as_dataframe and key.endswith('.csv'):
+            return_obj = pd.read_csv(io.BytesIO(bytes))
+        else:
+            return_obj = bytes
 
         if return_info:
             # get info from key (+ check for static trial)
@@ -148,9 +159,9 @@ class AWS():
                     'study_id': key.split('/')[1] + '_' + key.split('_')[-1].split('.')[0]          # this gets the pitch number (e.g., _01)
                 }
 
-            return response['Body'].read(), key_info
+            return return_obj, key_info
         else:
-            return response['Body'].read()    
+            return return_obj   
 
     def load_xml_from_s3(
             self, 

@@ -17,10 +17,10 @@ class AWS():
     """
     **AWS**
 
-    **Latest Version: `0.2.8`**\n
+    **Latest Version: `0.3.0`**\n
     **Author: `Connor Moore`**
 
-    `v0.2.8` modified object loading to return a dataframe if .csv is detected.
+    **What's New**: Updated `load_subject_info` to reflect new S3 structure.
 
     AWS connection class to connect to an RDS database and S3 bucket via SSH tunnel.
     This class provides methods to connect to the database, run queries, upload data,
@@ -34,7 +34,7 @@ class AWS():
     S3 access is handled with an IAM role within the elastic EC2 instance.
     """
 
-    __version__ = '0.2.8'
+    __version__ = '0.2.9'
 
     def __init__(self):
         self.connected = 0
@@ -229,10 +229,7 @@ class AWS():
     # load all subject info
     def load_subject_info(self) -> pd.DataFrame:
         """ Load subject info from S3 bucket. Returns a CSV file with subject IDs and other relevant information."""
-        subject_info_bytes = self.load_s3_object('subjects/summary/subject_info.csv', return_info=False)
-        subject_info = pd.read_csv(io.BytesIO(subject_info_bytes))
-
-        return subject_info
+        return self.load_s3_object('biomechanics/subjects/summary/subject_info.csv', return_info=False)
     
     # run queries in database
     def run_query(

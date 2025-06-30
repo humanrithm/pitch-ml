@@ -189,4 +189,4 @@ opensim_models/
 *.mot
 *.sto
 *.txt
-
+*.pkl

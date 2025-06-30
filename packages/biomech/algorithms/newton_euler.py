@@ -7,7 +7,8 @@ from .filtering import butter_lowpass_filter
 
 class NewtonEuler():
     """
-    Inverse Dynamics class for performing top-down or bottom-up inverse dynamics analysis using OpenSim models. Expands upon the OpenSim ID tool by allowing for the extraction of intersegmental moments/forces, such as elbow valgus torque.
+    Inverse Dynamics class for performing top-down or bottom-up inverse dynamics analysis using OpenSim models. Expands upon the OpenSim ID tool by allowing 
+    for the extraction of intersegmental moments/forces, such as elbow valgus torque.
     
     Attributes:
         model (osim.Model): The OpenSim model used for the analysis.
@@ -46,7 +47,7 @@ class NewtonEuler():
         __setup_bodies_and_joints(top_down): Sets up bodies and joints for the model.
     """
 
-    __version__ = '0.3.1'
+    __version__ = '0.3.2'
     __kinematic_filter__ = 18         # optional freq. for certain acceleration data
     
     # all joint rotations wrt. parent (updated in v0.2.8)
@@ -391,9 +392,9 @@ class NewtonEuler():
                 # (v0.2.6): removed reference to get_parent_pos_orientation function (incorrect)
                 # (v0.2.6): subtracted position of center of mass from p_pj in body frame
                 # (v0.2.8) confirmed these are constant
-            pjoint = self.joints[self.child_joints[bname]]                                      # joint object itself
-            p_pj = self.motion['joint'][pjoint.getName()]['child']['position'] - p_com          # position of child joint in body frame relative to CoM
-            R_pj = self.motion['joint'][pjoint.getName()]['child']['orientation']               # orientation of child joint in body frame, converted to Euler rotation matrix (XYZ, can hardcode -- constant)
+            pjoint = self.joints[self.child_joints[bname]]                                          # joint object itself
+            p_pj = self.motion['joint'][pjoint.getName()]['child']['position'] - p_com              # position of child joint in body frame relative to CoM
+            R_pj = self.motion['joint'][pjoint.getName()]['child']['orientation']                   # orientation of child joint in body frame, converted to Euler rotation matrix (XYZ, can hardcode -- constant)
             
             # set linear/angular accel variables
             a_com = bmotion['com']['acceleration']
@@ -401,22 +402,22 @@ class NewtonEuler():
             w_dot = bmotion['angular_acceleration_in_body']
             
             # update force, moment w/ mechanics
-            F_inert = mass * a_com                                          # world frame 
-            M_inert = (I @ w_dot).T + np.cross(w.T, (I @ w).T)              # body frame
+            F_inert = mass * a_com                                                                  # world frame 
+            M_inert = (I @ w_dot).T + np.cross(w.T, (I @ w).T)                                      # body frame
             
             # update net force
                 # QA: F_net should not be 0
                 # new in v3.0.0 (4/23/25): looping through t preserves shape
             R = bmotion['orientation']
             for t in range(self.num_samples):
-                F_net[:, t] = mass * (R[:, :, t] @ self.g)
+                F_net[:, t] = mass * (R[:, :, t].T @ self.g)                                        # new in v0.3.2: added .T to rotate gravity properly
         
             # check for child joint(s) to accumulate forces
             joint_name = self.child_joints[bname]
             joint_info = self.motion['joint']
             if joint_info[joint_name]['is_child']:
                 try:
-                    cjoint_names = joint_info[joint_name]['child_joints']   # get all child joint names (should be length 1 no matter what)
+                    cjoint_names = joint_info[joint_name]['child_joints']                            # get all child joint names (should be length 1 no matter what)
 
                     if len(cjoint_names) > 1:
                         raise ValueError(f"More than one child joint found for {joint_name}.")
@@ -428,7 +429,7 @@ class NewtonEuler():
                             # child body: ulna_r
                     for j in range(len(cjoint_names)):
                         # get joint coordinate system info
-                        pjcs = joint_info[cjoint_names[j]]['parent']['position']        # "this body is parent of child joint" 
+                        pjcs = joint_info[cjoint_names[j]]['parent']['position']                        # "this body is parent of child joint" 
                         Rjcs = joint_info[cjoint_names[j]]['parent']['orientation']   
 
                         # joint kinematics

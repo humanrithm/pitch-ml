@@ -347,4 +347,53 @@ def compute_normalized_time(
     """ Compute normalized time (i.e., 0-1) for a given time series. """
     return (time - time.min()) / (time.max() - time.min())
 
+# get peak value summary for a trial
+def get_trial_peaks(
+        data: pd.DataFrame,
+        peak_col: str = 'elbow_varus_torque'
+) -> dict:
+    data_max = data[peak_col].max()
+    data_min = data[peak_col].min()
+
+    if data_max > abs(data_min):
+        return {
+            'study_id': data['study_id'].unique()[0],
+            'peak_value': data[peak_col].max(),
+            'peak_time': data['time'][data[peak_col].idxmax()],             
+            'peak_normalized_time': data['normalized_time'][data[peak_col].idxmax()],
+            'peak_idx': data[peak_col].idxmax(),
+            'peak_was_negative': 0
+        }
+    else:
+        return {
+            'study_id': data['study_id'].unique()[0],
+            'peak_value': abs(data[peak_col].min()),
+            'peak_time': data['time'][data[peak_col].idxmin()],             
+            'peak_normalized_time': data['normalized_time'][data[peak_col].idxmin()],
+            'peak_idx': data[peak_col].idxmin(),
+            'peak_was_negative': 1
+        }
+    
+# inspect subject results for outliers
+def inspect_subject_results(
+        data: pd.DataFrame,
+        peak_label: str = 'peak_value'
+) -> pd.DataFrame:
+    # get peak value mean and standard deviation
+        # NOTE: using median for mean to be more robust to outliers
+    subject_avg = data[peak_label].median()
+    subject_std = data[peak_label].std()
+
+    # add `outlier_flag` column
+    data['outlier_flag'] = 0
+
+    # iterate through rows to check for outliers
+    for idx, values in data.iterrows():
+        # update outlier flag if peak value is more than 2 standard deviations from the mean
+            # NOTE: using median for mean to be more robust to outliers
+        if (values['peak_value'] > subject_avg + 1.96 * subject_std) or (values['peak_value'] < subject_avg - 1.96 * subject_std):
+            data.at[idx, 'outlier_flag'] = 1
+
+    return data
+
 

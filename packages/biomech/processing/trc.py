@@ -1,19 +1,21 @@
-import io, os
+import io
+import numpy as np
 import pandas as pd
 from typing import Union, TextIO
 from biomech.processing import create_marker_mapping, list_markers
 
-__version__ = '0.1.3'
+__version__ = '0.1.4'
+__timestep__ = 0.0021
 
 """ **TRC FILE PROCESSING** 
 
-**Current Version**: `0.1.3`
+**Current Version**: `0.1.4`
 
 This module provides functions to read, write, and process TRC files used in biomechanics. 
 It includes functionality to create headers, parse bodies, and filter markers based on the 
 throwing hand of the subject.
 
-**New in `0.1.3`**: Added `check_trc_format` function to verify the format of TRC files.
+**New in `0.1.4`**: Optional time column adjustments when loading TRCs to ensure consistent sampling rate.
 """
 
 # lists of markers to preserve in TRCs
@@ -117,7 +119,8 @@ def parse_trc_body(
         source: Union[str, bytes, TextIO],
         sample_rate: int = 480,
         throwing_hand: str = None,
-        filter_markers: bool = True
+        filter_markers: bool = True,
+        adjust_time: bool = True
 ) -> pd.DataFrame:
     
     """Parse the body of a TRC file string or bytes stream into a DataFrame. Returns a DataFrame with all marker positions."""
@@ -158,6 +161,11 @@ def parse_trc_body(
 
         # rename markers to match the model
         trc_data_clean.columns = ['Frame#', 'Time'] + __renamed_markers__
+
+    # adjust time column if specified (added in `0.1.4`)
+        # essentially sets a fixed 0.002 time interval to avoid rounding issues
+    if adjust_time:
+        trc_data_clean['Time'] = np.arange(0, trc_data_clean.shape[0] * __timestep__, __timestep__)
 
     return trc_data_clean.dropna(axis=1, how='all')         # drop any all-NaN columns from trc loading
 

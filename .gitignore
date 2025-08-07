@@ -189,4 +189,7 @@ opensim_models/
 *.mot
 *.sto
 *.txt
-
+*.pkl
+storage/
+cohort_data/
+ball_tracking_data/

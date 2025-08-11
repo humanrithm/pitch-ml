@@ -1,5 +1,6 @@
 import pandas as pd
 from scipy.spatial.distance import cdist
+from sklearn.preprocessing import StandardScaler
 
 # compute Euclidean distance between injured pitcher and all eligible non-injured pitchers
 def compute_matching_info(
@@ -9,10 +10,11 @@ def compute_matching_info(
         metric: str = 'euclidean'
 ) -> dict:
     """ Computes the distance between injured pitcher and all eligible non-injured pitchers. Returns a dictionary with distances and corresponding non-injured pitcher IDs. """
+
     # compute distance btw injured pitcher & all eligible non-injured pitchers based on matching cols
     distances = cdist(
-        noninj[matching_cols].values,
-        inj[matching_cols].values,
+        noninj[matching_cols],
+        inj[matching_cols],
         metric=metric
     ).flatten()
 
@@ -22,13 +24,7 @@ def compute_matching_info(
     matched_pitcher_id = noninj.iloc[min_idx]['mlbamid']
 
     return {
-        'injured_id': inj['mlbamid'].values[0],
-        'matched_id': matched_pitcher_id,
-        'min_distance': min_distance,
-        'inj_mass': inj['mass'].values[0],
-        'inj_height': inj['height'].values[0],
-        'inj_pitches_thrown': inj['pitches_thrown_interval'].values[0],
-        'noninj_mass': noninj.iloc[min_idx]['mass'],
-        'noninj_height': noninj.iloc[min_idx]['height'],
-        'noninj_pitches_thrown': noninj.iloc[min_idx]['pitches_thrown_interval'],
+        'mlbamid_injured': inj['mlbamid'].values[0],
+        'mlbamid_noninjured': matched_pitcher_id,
+        'min_distance': min_distance
     }

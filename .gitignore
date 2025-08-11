@@ -190,6 +190,7 @@ opensim_models/
 *.sto
 *.txt
 *.pkl
+models/
 storage/
 cohort_data/
 ball_tracking_data/

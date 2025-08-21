@@ -7,7 +7,8 @@ def compute_matching_info(
         inj: pd.DataFrame,
         noninj: pd.DataFrame,
         matching_cols: list,
-        metric: str = 'euclidean'
+        metric: str = 'euclidean',
+        n_matches: int = 1
 ) -> dict:
     """ Computes the distance between injured pitcher and all eligible non-injured pitchers. Returns a dictionary with distances and corresponding non-injured pitcher IDs. """
 
@@ -18,10 +19,20 @@ def compute_matching_info(
         metric=metric
     ).flatten()
 
-    # get min. distance
-    min_idx = distances.argmin()
-    min_distance = distances[min_idx]
-    matched_pitcher_id = noninj.iloc[min_idx]['mlbamid']
+    # get min. distance(s)
+    if n_matches > 1:
+        sorted_indices = distances.argsort()[:n_matches]
+        matched_pitcher_ids = noninj.iloc[sorted_indices]['mlbamid'].tolist()
+        min_distances = distances[sorted_indices].tolist()
+        return {
+            'mlbamid_injured': inj['mlbamid'].values[0],
+            'mlbamid_noninjured': matched_pitcher_ids,
+            'min_distances': min_distances
+        }
+    else:
+        min_idx = distances.argmin()
+        min_distance = distances[min_idx]
+        matched_pitcher_id = noninj.iloc[min_idx]['mlbamid']
 
     return {
         'mlbamid_injured': inj['mlbamid'].values[0],

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from .cnn_block import CNNBlock
+from .loss_functions import masked_softmax
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 class CNNbiLSTM(nn.Module):
@@ -55,10 +56,15 @@ class CNNbiLSTM(nn.Module):
             nn.Linear(hdim, 1)
         )
 
+        # attention scorer for pooling + sequence head
+        self.attn_scorer = nn.Linear(hdim, 1)
+        self.head_seq    = nn.Linear(hdim, 1)
+
     def forward(
             self, 
             x: torch.Tensor, 
-            lengths: torch.Tensor
+            lengths: torch.Tensor,
+            mask: torch.Tensor
     ) -> None:
         # CNN expects [B,K,T]
         x = x.transpose(1, 2)                  # [B,K,T]
@@ -75,5 +81,11 @@ class CNNbiLSTM(nn.Module):
 
         # apply head to get logits for each pitch
         logits_step = self.head_step(out).squeeze(-1)  # [B,T]
+
+        # attention pooling (mask‑aware)
+        scores = self.attn_scorer(out).squeeze(-1)     # [B,T]
+        attn   = masked_softmax(scores, mask, dim=1)   # [B,T]
+        ctx    = (attn.unsqueeze(-1) * out).sum(dim=1) # [B,H]
+        logit_seq = self.head_seq(ctx).squeeze(-1)     # [B]
         
-        return logits_step
+        return logits_step, logit_seq, attn 

@@ -49,3 +49,24 @@ def compute_pos_weight(
     pos = max(pos, 1.0)
     
     return torch.tensor(neg / pos, device=device, dtype=torch.float32)
+
+# masked softmax function
+    # computes softmax over scores while ignoring masked positions
+def masked_softmax(
+        scores: torch.Tensor, 
+        mask: torch.Tensor, 
+        dim: int = -1
+) -> torch.Tensor:
+    """ Compute masked softmax over scores."""
+    # fill masked positions with -inf to ignore them in softmax
+    scores = scores.masked_fill(~mask, float('-inf'))
+    
+    # apply softmax to scores along the specified dimension
+    attn = torch.softmax(scores, dim=dim)
+    attn = attn * mask.float()  # make sure padded positions are 0 after softmax
+    
+    # compute denominator for normalization
+    denom = attn.sum(dim=dim, keepdim=True).clamp_min(1e-8)
+    
+    return attn / denom
+
